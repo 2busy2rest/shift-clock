@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Shift Clock" />
+<title>Shift Clock</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f4; --bg3: #eeede8;
+    --text: #1a1a18; --text2: #6b6b67; --text3: #9b9b96;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --green: #1d9e75; --green-bg: #e1f5ee;
+    --amber: #ba7517; --amber-bg: #faeeda;
+    --red: #a32d2d; --red-bg: #fcebeb;
+    --radius: 10px; --radius-lg: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2c;
+      --text: #f0efea; --text2: #9b9b96; --text3: #6b6b67;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --green: #5dcaa5; --green-bg: #04342c;
+      --amber: #fac775; --amber-bg: #412402;
+      --red: #f09595; --red-bg: #501313;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; padding: 16px; padding-bottom: env(safe-area-inset-bottom, 24px); }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 12px; }
+  .section-label { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+  .input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .input-row label { font-size: 13px; color: var(--text2); width: 88px; flex-shrink: 0; }
+  input[type="number"], input[type="time"], select { flex: 1; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 8px 10px; font-size: 15px; background: var(--bg); color: var(--text); -webkit-appearance: none; appearance: none; outline: none; min-width: 0; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b67' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  .btn { border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 14px 16px; font-size: 15px; color: var(--text); background: transparent; cursor: pointer; width: 100%; text-align: center; -webkit-tap-highlight-color: transparent; transition: opacity 0.1s; font-family: inherit; }
+  .btn:active:not(:disabled) { opacity: 0.7; }
+  .btn:disabled { opacity: 0.3; cursor: default; }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+  .btn-warn { border-color: var(--amber); color: var(--amber); }
+  .btn-warn:active:not(:disabled) { background: var(--amber-bg); }
+  .btn-success { border-color: var(--green); color: var(--green); }
+  .btn-success:active:not(:disabled) { background: var(--green-bg); }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:active:not(:disabled) { background: var(--red-bg); }
+  .punch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .span2 { grid-column: span 2; }
+  .status-pill { display: inline-block; font-size: 11px; padding: 3px 11px; border-radius: 99px; font-weight: 500; }
+  .pill-idle { background: var(--bg2); color: var(--text2); }
+  .pill-working { background: var(--green-bg); color: var(--green); }
+  .pill-break { background: var(--amber-bg); color: var(--amber); }
+  .pill-done { background: var(--bg2); color: var(--text2); }
+  .earnings { font-size: 52px; font-weight: 600; color: var(--green); letter-spacing: -2px; line-height: 1; }
+  .elapsed { font-size: 17px; color: var(--text2); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+  .break-note { font-size: 12px; color: var(--text3); min-height: 18px; }
+  .punch-log-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .punch-log-row:last-child { border-bottom: none; }
+  .log-label { color: var(--text2); }
+  .log-time { font-variant-numeric: tabular-nums; }
+  .reset-btn { font-size: 13px; color: var(--red); border-color: var(--red); margin-top: 4px; }
+  .new-rate-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .new-rate-row input { flex: 1; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 8px 10px; font-size: 15px; background: var(--bg); color: var(--text); -webkit-appearance: none; appearance: none; outline: none; }
+  .add-btn { background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 8px 14px; font-size: 14px; color: var(--text); cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .add-btn:active { opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div id="setup-panel" class="card">
+  <p class="section-label">Configure your shift</p>
+  <div class="input-row">
+    <label>Hourly rate ($)</label>
+    <select id="rate-select" onchange="handleRateSelect(this.value)">
+      <option value="">Select a rate</option>
+    </select>
+  </div>
+  <div id="new-rate-section" style="margin-bottom:12px;">
+    <div class="new-rate-row">
+      <input type="number" id="new-rate-input" placeholder="Enter new rate" min="1" step="0.01" inputmode="decimal" />
+      <button class="add-btn" onclick="saveNewRate()">Save rate</button>
+    </div>
+  </div>
+  <div class="input-row">
+    <label>Shift start</label>
+    <input type="time" id="shift-start" />
+  </div>
+  <button class="btn btn-primary" onclick="punchStartShift()" style="margin-top:4px;" id="start-btn" disabled>Start shift</button>
+</div>
+
+<div id="main-panel" style="display:none;">
+  <div class="card" style="text-align:center; padding: 24px 20px 20px;">
+    <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
+      <span class="status-pill pill-idle" id="status-pill">idle</span>
+      <span style="font-size:13px; color:var(--text2);" id="rate-display"></span>
+    </div>
+    <p class="elapsed" id="elapsed-display">0:00:00</p>
+    <p class="earnings" id="earnings-display">$0.00</p>
+    <p class="break-note" id="break-display" style="margin-top:8px;"></p>
+  </div>
+  <div class="card">
+    <div class="punch-grid">
+      <button class="btn btn-warn"    id="btn-meal-begin" onclick="punchMealBegin()" disabled>Meal begin</button>
+      <button class="btn btn-success" id="btn-meal-end"   onclick="punchMealEnd()"   disabled>Meal end</button>
+      <button class="btn btn-danger span2" id="btn-end-shift" onclick="punchEndShift()" disabled>End shift</button>
+    </div>
+    <button class="btn reset-btn" onclick="resetShift()">Reset / new shift</button>
+  </div>
+  <div id="log-section" class="card" style="display:none;">
+    <p class="section-label">Punch log</p>
+    <div id="punch-log"></div>
+  </div>
+</div>
+
+<script>
+  const MAX_RATES = 8;
+  let hourlyRate = null;
+  let shiftStartTime = null, breakStartTime = null;
+  let totalBreakMs = 0, interval = null;
+  let shiftEnded = false, shiftEndedAt = null;
+  let punchLog = [], state = 'idle';
+
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function formatTime(ms) { if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60; return h+':'+pad(m)+':'+pad(sec); }
+  function fmt$(n) { return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function nowStr() { const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+  function loadRates() { try { return JSON.parse(localStorage.getItem('shift_rates')||'[]'); } catch(e) { return []; } }
+  function saveRates(r) { try { localStorage.setItem('shift_rates',JSON.stringify(r)); } catch(e) {} }
+
+  function addRate(rate) {
+    let r = loadRates().filter(x => Math.abs(x-rate) > 0.001);
+    r.unshift(rate);
+    if(r.length > MAX_RATES) r = r.slice(0, MAX_RATES);
+    saveRates(r); renderDropdown(rate);
+  }
+
+  function renderDropdown(selectedRate) {
+    const sel = document.getElementById('rate-select');
+    const rates = loadRates();
+    sel.innerHTML = '<option value="">Select a rate</option>';
+    rates.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.toFixed(2);
+      o.textContent = fmt$(r) + '/hr';
+      if(selectedRate !== undefined && Math.abs(r - selectedRate) < 0.001) o.selected = true;
+      sel.appendChild(o);
+    });
+    const other = document.createElement('option');
+    other.value = 'other';
+    other.textContent = '+ Enter new rate';
+    sel.appendChild(other);
+  }
+
+  function handleRateSelect(val) {
+    if(val === 'other' || val === '') {
+      document.getElementById('new-rate-section').style.display = 'block';
+      document.getElementById('start-btn').disabled = true;
+      hourlyRate = null;
+    } else {
+      document.getElementById('new-rate-section').style.display = 'none';
+      hourlyRate = parseFloat(val);
+      document.getElementById('start-btn').disabled = false;
+    }
+  }
+
+  function saveNewRate() {
+    const val = parseFloat(document.getElementById('new-rate-input').value);
+    if(!val || val <= 0) { alert('Please enter a valid rate.'); return; }
+    addRate(val);
+    hourlyRate = val;
+    document.getElementById('new-rate-input').value = '';
+    document.getElementById('new-rate-section').style.display = 'none';
+    document.getElementById('start-btn').disabled = false;
+  }
+
+  function setButtons(s) {
+    document.getElementById('btn-meal-begin').disabled = s !== 'working';
+    document.getElementById('btn-meal-end').disabled   = s !== 'on_break';
+    document.getElementById('btn-end-shift').disabled  = (s === 'idle' || s === 'done');
+    const pills  = {idle:'pill-idle', working:'pill-working', on_break:'pill-break', done:'pill-done'};
+    const labels = {idle:'idle', working:'working', on_break:'on break', done:'shift ended'};
+    const pill = document.getElementById('status-pill');
+    pill.className = 'status-pill ' + (pills[s] || 'pill-idle');
+    pill.textContent = labels[s] || s;
+  }
+
+  function logPunch(label, timeStr) {
+    const t = timeStr || nowStr();
+    punchLog.push({label, time: t});
+    document.getElementById('log-section').style.display = 'block';
+    document.getElementById('punch-log').innerHTML = punchLog.map(p =>
+      `<div class="punch-log-row"><span class="log-label">${p.label}</span><span class="log-time">${p.time}</span></div>`
+    ).join('');
+  }
+
+  (function init() {
+    const now = new Date(); now.setSeconds(0,0);
+    document.getElementById('shift-start').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    renderDropdown();
+    document.getElementById('new-rate-section').style.display = loadRates().length === 0 ? 'block' : 'none';
+  })();
+
+  function punchStartShift() {
+    if(!hourlyRate) return;
+    const tv = document.getElementById('shift-start').value;
+    let enteredTimeStr = nowStr();
+    if(tv) {
+      const [hh,mm] = tv.split(':').map(Number), d = new Date();
+      d.setHours(hh,mm,0,0);
+      if(d > Date.now()) d.setDate(d.getDate()-1);
+      shiftStartTime = d.getTime();
+      enteredTimeStr = pad(hh) + ':' + pad(mm) + ':00';
+    } else {
+      shiftStartTime = Date.now();
+    }
+    totalBreakMs = 0; breakStartTime = null; shiftEnded = false; shiftEndedAt = null; punchLog = [];
+    document.getElementById('punch-log').innerHTML = '';
+    document.getElementById('log-section').style.display = 'none';
+    addRate(hourlyRate);
+    document.getElementById('rate-display').textContent = fmt$(hourlyRate) + '/hr';
+    document.getElementById('setup-panel').style.display = 'none';
+    document.getElementById('main-panel').style.display = 'block';
+    state = 'working'; setButtons(state);
+    logPunch('Shift started', enteredTimeStr);
+    if(interval) clearInterval(interval);
+    interval = setInterval(tick, 250); tick();
+  }
+
+  function punchMealBegin() {
+    if(state !== 'working') return;
+    breakStartTime = Date.now();
+    state = 'on_break'; setButtons(state);
+    logPunch('Meal begin');
+  }
+
+  function punchMealEnd() {
+    if(state !== 'on_break' || !breakStartTime) return;
+    totalBreakMs += Date.now() - breakStartTime;
+    breakStartTime = null;
+    state = 'working'; setButtons(state);
+    logPunch('Meal end');
+  }
+
+  function punchEndShift() {
+    if(state === 'on_break') { totalBreakMs += Date.now() - breakStartTime; breakStartTime = null; }
+    shiftEndedAt = Date.now(); state = 'done'; shiftEnded = true; setButtons(state);
+    logPunch('Shift ended');
+    if(interval) { clearInterval(interval); interval = null; } tick();
+  }
+
+  function tick() {
+    if(!shiftStartTime) return;
+    const now = shiftEnded ? shiftEndedAt : Date.now();
+    const currentBreak = (state === 'on_break' && breakStartTime) ? (now - breakStartTime) : 0;
+    const paidMs = Math.max(0, (now - shiftStartTime) - totalBreakMs - currentBreak);
+
+    document.getElementById('earnings-display').textContent = fmt$((paidMs / 3600000) * hourlyRate);
+    document.getElementById('elapsed-display').textContent = formatTime(paidMs);
+
+    const total = totalBreakMs + currentBreak;
+    document.getElementById('break-display').textContent = total > 0 ? 'Break elapsed: ' + formatTime(total) : '';
+  }
+
+  function resetShift() {
+    if(interval) clearInterval(interval); interval = null;
+    shiftStartTime = null; breakStartTime = null; totalBreakMs = 0;
+    shiftEnded = false; shiftEndedAt = null; punchLog = []; state = 'idle'; hourlyRate = null;
+    document.getElementById('main-panel').style.display = 'none';
+    document.getElementById('setup-panel').style.display = 'block';
+    document.getElementById('punch-log').innerHTML = '';
+    document.getElementById('log-section').style.display = 'none';
+    document.getElementById('earnings-display').textContent = '$0.00';
+    document.getElementById('elapsed-display').textContent = '0:00:00';
+    document.getElementById('break-display').textContent = '';
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('rate-select').value = '';
+    const now = new Date(); now.setSeconds(0,0);
+    document.getElementById('shift-start').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    renderDropdown();
+    document.getElementById('new-rate-section').style.display = loadRates().length === 0 ? 'block' : 'none';
+  }
+</script>
+</body>
+</html>
